@@ -58,7 +58,7 @@ T_N = predmod.T(end-dim.nx+1:end,:);
 S_N = predmod.S(end-dim.nx+1:end,:);
 %% Simulate MPC from the initial starting point.
 
-T = 200;    % Simulation steps
+T = 1500;    % Simulation steps
 
 % Matrices to store results
 x=zeros(dim.nx,T+1);
@@ -68,11 +68,23 @@ u_rec=zeros(dim.nu,T);
 LTI.x0 = [-0.05;0.3;2;-2;0.01;-0.012;0.002;-0.002];
 x(:,1)=LTI.x0;
 
+% Bump Road
+L = 10;
+A = 0.05;
+Wheelbase = 1.25+1.51;
+V = 30/3.6;
+t0 = 5;
+[ExternalInput.zf,ExternalInput.zr,ExternalInput.dotzf,ExternalInput.dotzr] = GenerateBump(L, A, Wheelbase, V, t0, 0.01, T);
+
+% Pitch Moment
+ExternalInput.PitchMoment = zeros(1,T);
+My = 0.3*9.81*(690+40.5+45.4)*0.85;
+ExternalInput.PitchMoment(1001:end) = My;
 %% Without MPC Controller
 x_original = LTI.x0;
-u_original = [0;0;0;0;2300];
 for k=1:T
-    x_new = LTI.A * x_original(:,k) + LTI.B * u_original;
+    u = [0;0;ExternalInput.dotzf(k);ExternalInput.dotzr(k);ExternalInput.PitchMoment(k)];
+    x_new = LTI.A * x_original(:,k) + LTI.B * u;
     x_original = [x_original, x_new];
 end
 %%
@@ -83,9 +95,9 @@ for k=1:T
     
     % Solve the unconstrained optimization problem (with YALMIP)
     u_con = sdpvar(dim.nu*dim.N,1);          % define optimization variable
-    Constraint=[u_con(3:5:end) == 0;         % Front road input
-                u_con(4:5:end) == 0          % Rear road input
-                u_con(5:5:end) == 2300          % Pitch Moment
+    Constraint=[u_con(3:5:end) == ExternalInput.dotzf(k);         % Front road input
+                u_con(4:5:end) == ExternalInput.dotzr(k)          % Rear road input
+                u_con(5:5:end) == ExternalInput.PitchMoment(k)          % Pitch Moment
                 A_X * x_0 <= b_X;            % State constraints
                 A_U * u_con <= b_U;          % Input constraints
                 terminal.A * (T_N * x_0 + S_N * u_con) <=terminal.b;        % Terminal constraints
@@ -105,7 +117,7 @@ end
 
 %%
 step = 0:1:T;
-index = 6;
+index = 1;
 figure()
 hold on
 stairs(step, x(index,:)) % 用阶梯图画出状态保持器的效果
