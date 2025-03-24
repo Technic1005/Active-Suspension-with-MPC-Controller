@@ -1,6 +1,5 @@
 %% Clear up
 clear all
-close all
 clc
 %% Define Suspension Model
 % Define LTI system and boundary
@@ -10,12 +9,13 @@ clc
 dim.nx = size(LTI.A,2);     % state dimension
 dim.nu = size(LTI.B,2);     % input dimension
 dim.ny = size(LTI.D,1);     % output dimension
-dim.N = 5;                  % prediction horizon
+dim.N = 8;                  % prediction horizon
 
 % Weight Matrix
 weight.Q = diag([1e4, 1e4, 1e3, 1e3, 1e6, 1e6,1e3,1e3]);
+%weight.Q = diag([1e5, 1e5, 1e5, 1e5, 1e5, 1e5,1e5,1e5]);
 weight.R = diag([1e-4, 1e-4, 1e-3, 1e-3, 1e-3]);
-
+%weight.R = diag([1e-3, 1e-3, 1e-3, 1e-3, 1e-3]);
 % Find LQR.
 [K, P] = dlqr(LTI.A, LTI.B, weight.Q, weight.R);
 weight.P = P;
@@ -58,7 +58,7 @@ T_N = predmod.T(end-dim.nx+1:end,:);
 S_N = predmod.S(end-dim.nx+1:end,:);
 %% Simulate MPC from the initial starting point.
 
-T = 1500;    % Simulation steps
+T = 500;    % Simulation steps
 
 % Matrices to store results
 x=zeros(dim.nx,T+1);
