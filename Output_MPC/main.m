@@ -6,26 +6,23 @@ clc
 % Define LTI system and boundary
 [LTI, xlb, xub, ulb, uub] = Suspension_Model();
 LTI.x0 = [0;0;0;0;0;0;0;0];
-% IMU 
-LTI.d=[0; 0; 0; 0];
-LTI.d=[-0.1; 0.015; 0.001];
-LTI.yref=[0; 0; 0; 0];
+LTI.d = [0];
 LTI.Cd= [
-    1, 0, 0;
-    0, 0.1, 0;
-    0, 0, 1;
-    0, 0, 1
+    0;
+    0;
+    0.5;
+    0.5
 ];
 
 LTI.Bd=[
-    0.1, 0, 0;
-    0, 0.1, 0;
-    0.01, 0, 0;
-    0.01, 0, 0;
-    0, 0, 1;
-    0, 0, 1;
-    0, 0, 0;
-    0, 0, 0
+    -0.5;
+    0;
+    0;
+    0;
+    0;
+    0;
+    0;
+    0
 ];
 
 % Model perdictive controller parameters
@@ -33,11 +30,11 @@ dim.nx = size(LTI.A,2);     % state dimension
 dim.nu = size(LTI.B,2);     % input dimension
 dim.ny = size(LTI.D,1);     % output dimension
 dim.nd = size(LTI.d,1);     %disturbance dimension
-dim.N = 10;                  % prediction horizon
+dim.N = 8;                  % prediction horizon
 
 % Weight Matrix
-weight.Q = diag([1e3, 1e3, 1e2, 1e2, 1e2, 1e2, 1e2, 1e2]);
-weight.R = 1e-3*eye(4);
+weight.Q = diag([1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0,1e0]);
+weight.R = diag([1e-3, 1e-3, 0, 0, 0]);
 
 % Find LQR.
 [K, P] = dlqr(LTI.A, LTI.B, weight.Q, weight.R);
@@ -50,8 +47,7 @@ LTIe.A=[LTI.A LTI.Bd; zeros(dim.nd,dim.nx) eye(dim.nd)];
 LTIe.B=[LTI.B; zeros(dim.nd,dim.nu)];
 LTIe.C=[LTI.C LTI.Cd];
 LTIe.D=LTI.D;
-LTIe.x0=[LTI.x0; LTI.d];
-LTIe.yref=LTI.yref;
+LTIe.x0=[LTI.x0; 0];
 
 %Definition of system dimension
 dime.nx = dim.nx + dim.nd;     %state dimension
@@ -84,49 +80,72 @@ end
 
 % Calculate state constraints
 % A_X * X <= b_X
-[A_X, b_X] = hyperrectangle(xlb, xub);
+[A_x, b_x] = hyperrectangle([xlb; -inf()], [xub; inf()]);
+A_X = [];
+b_X = [];
+for i=1:dim.N+1
+    A_X = blkdiag(A_X, A_x);
+    b_X = [b_X;b_x];
+end
 %% Simulate MPC from the initial starting point.
 
-T = 200;    % Simulation steps
+T = 1500;    % Simulation steps
+div = 15;
+
+d1 = [zeros(1,T/div) 0.1*ones(1,1*T/div) zeros(1,8*T/div) 0.1*ones(1,5*T/div)];
+yref = [zeros(4, 5*T/div), [zeros(2,10*T/div); 0.10*ones(1,10*T/div); 0.10*ones(1,10*T/div)]];
+
+% T = 1000;    % Simulation steps
+% div = 10;
+% d1 = [zeros(1, 5*T/div) 0.2*ones(1,5*T/div)];
+% yref = [zeros(2,10*T/div); 0.1*ones(1,10*T/div); 0.1*ones(1,10*T/div)];
 
 % Matrices to store results
 xe=zeros(dime.nx,T+1);
 y=zeros(dime.ny,T);
+yhat=zeros(dime.ny,T);
 u_rec=zeros(dime.nu,T);
 xehat=zeros(dime.nx,T+1);
+xr_plot = zeros(dim.nx,T);
+ur_plot = zeros(dim.nu,T);
 
 % Initial consition
 
 xe(:,1)=LTIe.x0;
 xehat(:,1)=zeros(dime.nx,1);
-y(:,1)=LTIe.C*LTIe.x0;
 
+Q_kf = 1*eye(9);
+R_kf = 1*eye(4);
 
-Obs_poles = [0.7; 0.6; 0.5; 0.6; 0.8; 0.65; 0.6; 0.85; 0.65; 0.55; 0.6];
-Obs_gain = place(LTIe.A', LTIe.C', Obs_poles)';
+[~,Obs_eigvals,Obs_gain] = dare(LTIe.A',LTIe.C',Q_kf,R_kf);
+Obs_gain = Obs_gain';
 
 %
 % Receding horizon implementation
 for k=1:T
     
-    xe_0=xe(:,k);  
+    xe_0=xehat(:,k);  
+    x_0 = [xe(1:8,k); d1(k)];
     dhat=xehat(end-dim.nd+1:end,k);
     
     %Compute optimal ss (online, at every iteration)
+    LTI.yref = yref(:,k);
     eqconstraints=eqconstraintsgen(LTI,dim,dhat);
-    constraints.A = [A_X, zeros(6, dim.nu);zeros(4, dim.nx), A_u];
-    constraints.b = [b_X;b_u];
-    [xr,ur]=optimalss(LTI,dim,weight,constraints,eqconstraints); 
+    constraints.A = [A_x(:, 1:dim.nx), zeros(6, dim.nu);zeros(4, dim.nx), A_u];
+    constraints.b = [b_x;b_u];
+    [xr,ur]=optimalss(LTI,dim,weight,constraints,eqconstraints);  
     xre=[xr;dhat];
+    xr_plot(:,k) = xr;
+    ur_plot(:,k) = ur;
     
     % Solve the unconstrained optimization problem (with YALMIP)
     uostar = sdpvar(dime.nu*dime.N,1);          % define optimization variable
     Constraint=[uostar(3:4:end) == 0;         % Front road input
                 uostar(4:4:end) == 0          % Rear road input
-                % A_X * x_0 <= b_X;            % State constraints
+                uostar(5:4:end) == 0
+                A_X * (predmode.T*xe_0 + predmode.S*uostar) <= b_X
                 A_U * uostar <= b_U;          % Input constraints
-                % terminal.A * (T_N * x_0 + S_N * u_con) <=terminal.b;        % Terminal constraints
-        ];                                           % define constraints
+    ];                                           % define constraints
     Objective = 0.5*uostar'*He*uostar+(he*[xe_0; xre; ur])'*uostar;    %define cost function
     optimize(Constraint,Objective);                                    %solve the problem
     uostar=value(uostar);   
@@ -135,20 +154,43 @@ for k=1:T
     u_rec(:,k)=uostar(1:dim.nu);
 
     % Compute the state/output evolution
-    xe(:,k+1)=LTIe.A*xe_0 + LTIe.B*u_rec(:,k);
+    xe(:,k+1)=LTIe.A*x_0 + LTIe.B*u_rec(:,k);
     y(:,k)=LTIe.C*xe(:,k) + LTIe.D*u_rec(:,k);
     clear u_uncon
+
+    yhat(:,k) = LTIe.C*xe_0 + LTIe.D*u_rec(:,k);
         
     % Update extended-state estimation
-    xehat(:,k+1)=LTIe.A*xehat(:,k)+LTIe.B*u_rec(:,k)+Obs_gain*(y(:,k)-(LTIe.C*xehat(:,k) + LTIe.D*u_rec(:,k)));
+    xehat(:,k+1)=LTIe.A*xehat(:,k)+LTIe.B*u_rec(:,k)+Obs_gain*(y(:,k)-yhat(:,k));
     
 end
 
-%%
-e=y-kron(ones(1,T),LTI.yref);
-figure
-plot(0:T-1,e),
+% %%
+% e=y-kron(ones(1,T),LTI.yref);
+% figure
+% plot(0:T-1,e(4,:)),
 
 %%
 figure()
-plot(0:T, xehat(end-dim.nd+2,:))
+hold on
+plot(0:T, xehat(end-dim.nd+1,:))
+%%
+figure()
+hold on
+index = 3;
+plot(0:T-1, y(index,:))
+%plot(0:T-1, yhat(index,:))
+plot(0:T-1, yref(index, :))
+%%
+figure()
+hold on
+index = 6;
+plot(0:T, xe(index,:))
+plot(0:T, xehat(index,:))
+plot(0:T-1, xr_plot(index,:))
+%%
+figure()
+hold on
+index = 2;
+plot(0:T-1, ur_plot(index,:))
+plot(0:T-1, u_rec(index,:))
