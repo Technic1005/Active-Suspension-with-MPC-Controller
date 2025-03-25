@@ -1,6 +1,6 @@
 function[xr,ur]=optimalss(LTI,dim,weight,constraints,eqconstraints)
 
-H=blkdiag(zeros(dim.nx),10*eye(dim.nu));
+H=blkdiag(zeros(dim.nx),eye(dim.nu));
 h=zeros(dim.nx+dim.nu,1);
 
 

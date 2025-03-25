@@ -35,17 +35,13 @@ B=[
 ];
 
 C = [
-    -(c_s1+c_s2)/m_b, (a*c_s1-b*c_s2)/m_b, c_s1/m_b, c_s2/m_b, -k_s1/m_b, -k_s2/m_b, 0, 0;
-    (a*c_s1-b*c_s2)/I_yy, -(a^2*c_s1+b^2*c_s2)/I_yy, -a*c_s1/I_yy, b*c_s2/I_yy, a*k_s1/I_yy, -b*k_s1/I_yy, 0, 0;
+    0, 1, 0, 0, 0, 0, 0, 0;
     0, 0, 0, 0, 1, 0, 0, 0;
     0, 0, 0, 0, 0, 1, 0, 0;
 ];
 
 D = [
-    1/m_b, 1/m_b, 0, 0, 0;
-    -a/I_yy, b/I_yy, 0, 0, 1/I_yy;
-    0, 0, 0, 0, 0;
-    0, 0, 0, 0, 0;
+    0
 ];
 %%
 P = ss(A,B,C,D);
@@ -56,8 +52,8 @@ LTI.B=P_dis.B;
 LTI.C=P_dis.C;
 LTI.D=P_dis.D;
 
-xlb = [-inf(), -inf(), -inf(), -inf(), -0.15, -0.15, -inf(), -inf()]';
-xub = [inf(), inf(), inf(), inf(), 0.12, 0.12, (m_b*b/(a+b)+m_w1)*9.81/k_s1, (m_b*a/(a+b)+m_w2)*9.81/k_s2]';
+xlb = [-inf(), -inf(), -inf(), -inf(), -0.10, -0.10, -inf(), -inf()]';
+xub = [inf(), inf(), inf(), inf(), 0.08, 0.08, (m_b*b/(a+b)+m_w1)*9.81/k_s1, (m_b*a/(a+b)+m_w2)*9.81/k_s2]';
 ulb = [-3500, -3500, -inf(), -inf(), -inf()]';
 uub = [3500, 3500, inf(), inf(), inf()]';
 

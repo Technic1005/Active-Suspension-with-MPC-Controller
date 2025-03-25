@@ -6,23 +6,22 @@ clc
 % Define LTI system and boundary
 [LTI, xlb, xub, ulb, uub] = Suspension_Model();
 LTI.x0 = [0;0;0;0;0;0;0;0];
-LTI.d = [0];
+LTI.d = [0;0];
 LTI.Cd= [
-    0;
-    0;
-    0.5;
-    0.5
+    0, 0;
+    0, 0;
+    0, 1
 ];
 
 LTI.Bd=[
-    -0.5;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0;
-    0
+    0.4, 0;
+    0, 0;
+    0, 0;
+    0, 0;
+    0, 0;
+    0, 0;
+    0, 0;
+    0, 0
 ];
 
 % Model perdictive controller parameters
@@ -34,7 +33,7 @@ dim.N = 8;                  % prediction horizon
 
 % Weight Matrix
 weight.Q = diag([1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0,1e0]);
-weight.R = diag([1e-3, 1e-3, 0, 0, 0]);
+weight.R = diag([1e-2, 1e-2, 0, 0, 0]);
 
 % Find LQR.
 [K, P] = dlqr(LTI.A, LTI.B, weight.Q, weight.R);
@@ -47,7 +46,7 @@ LTIe.A=[LTI.A LTI.Bd; zeros(dim.nd,dim.nx) eye(dim.nd)];
 LTIe.B=[LTI.B; zeros(dim.nd,dim.nu)];
 LTIe.C=[LTI.C LTI.Cd];
 LTIe.D=LTI.D;
-LTIe.x0=[LTI.x0; 0];
+LTIe.x0=[LTI.x0; LTI.d];
 
 %Definition of system dimension
 dime.nx = dim.nx + dim.nd;     %state dimension
@@ -80,7 +79,7 @@ end
 
 % Calculate state constraints
 % A_X * X <= b_X
-[A_x, b_x] = hyperrectangle([xlb; -inf()], [xub; inf()]);
+[A_x, b_x] = hyperrectangle([xlb; -inf()*ones(dim.nd,1)], [xub; inf()*ones(dim.nd,1)]);
 A_X = [];
 b_X = [];
 for i=1:dim.N+1
@@ -92,13 +91,15 @@ end
 T = 1500;    % Simulation steps
 div = 15;
 
-d1 = [zeros(1,T/div) 0.1*ones(1,1*T/div) zeros(1,8*T/div) 0.1*ones(1,5*T/div)];
-yref = [zeros(4, 5*T/div), [zeros(2,10*T/div); 0.10*ones(1,10*T/div); 0.10*ones(1,10*T/div)]];
+d1 = [zeros(1,T/div) (470/690*0.025)*ones(1,1*T/div) zeros(1,6*T/div) (470/690*0.025)*ones(1,7*T/div)];
+d2 = [zeros(1, 11*T/div) (0.01)*ones(1,4*T/div)];
+yref = [zeros(3, 5*T/div), [zeros(1,10*T/div); 0.05*ones(1,10*T/div); 0.05*ones(1,10*T/div)]];
 
 % T = 1000;    % Simulation steps
 % div = 10;
-% d1 = [zeros(1, 5*T/div) 0.2*ones(1,5*T/div)];
-% yref = [zeros(2,10*T/div); 0.1*ones(1,10*T/div); 0.1*ones(1,10*T/div)];
+% d1 = [zeros(1, 5*T/div) (470/690*0.025)*ones(1,5*T/div)];
+% d2 = [zeros(1, 7*T/div) (0.01)*ones(1,3*T/div)];
+% yref = [zeros(1,10*T/div); 0.05*ones(1,10*T/div); 0.05*ones(1,10*T/div)];
 
 % Matrices to store results
 xe=zeros(dime.nx,T+1);
@@ -114,18 +115,18 @@ ur_plot = zeros(dim.nu,T);
 xe(:,1)=LTIe.x0;
 xehat(:,1)=zeros(dime.nx,1);
 
-Q_kf = 1*eye(9);
-R_kf = 1*eye(4);
+Q_kf = 1*eye(dime.nx);
+R_kf = 1*eye(dime.ny);
 
 [~,Obs_eigvals,Obs_gain] = dare(LTIe.A',LTIe.C',Q_kf,R_kf);
 Obs_gain = Obs_gain';
 
-%
+%%
 % Receding horizon implementation
 for k=1:T
     
     xe_0=xehat(:,k);  
-    x_0 = [xe(1:8,k); d1(k)];
+    x_0 = [xe(1:8,k); d1(k);d2(k)];
     dhat=xehat(end-dim.nd+1:end,k);
     
     %Compute optimal ss (online, at every iteration)
@@ -165,11 +166,6 @@ for k=1:T
     
 end
 
-% %%
-% e=y-kron(ones(1,T),LTI.yref);
-% figure
-% plot(0:T-1,e(4,:)),
-
 %%
 figure()
 hold on
@@ -177,14 +173,14 @@ plot(0:T, xehat(end-dim.nd+1,:))
 %%
 figure()
 hold on
-index = 3;
+index = 1;
 plot(0:T-1, y(index,:))
-%plot(0:T-1, yhat(index,:))
+plot(0:T-1, yhat(index,:))
 plot(0:T-1, yref(index, :))
 %%
 figure()
 hold on
-index = 6;
+index = 8;
 plot(0:T, xe(index,:))
 plot(0:T, xehat(index,:))
 plot(0:T-1, xr_plot(index,:))
