@@ -34,6 +34,8 @@ dim.N = 8;                  % prediction horizon
 % Weight Matrix
 weight.Q = diag([1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0,1e0]);
 weight.R = diag([1e-2, 1e-2, 0, 0, 0]);
+% weight.Q = 1e4*diag([1e0, 1e0, 1e0, 1e0, 1e1, 1e1, 1e0,1e0]);
+% weight.R = diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4]);
 
 % Find LQR.
 [K, P] = dlqr(LTI.A, LTI.B, weight.Q, weight.R);
@@ -59,7 +61,14 @@ dime.N=dim.N;      %horizon
 weighte.Q=blkdiag(weight.Q,zeros(dim.nd));            %weight on output
 weighte.R=weight.R;                                   %weight on input
 weighte.P=blkdiag(weight.P,zeros(dim.nd));            %terminal cost
+%% Compute X_f.
 
+% Compute X_f based on exercise 4 question 2
+Xn = struct();
+V = struct();
+Z = struct();
+% Reuse code from exercise 4
+[Xn.('lqr'), V.('lqr'), Z.('lqr')] = findXn(LTI.A, LTI.B, K, dim.N, xlb, xub, ulb, uub, 'lqr');
 %% Preprocess of MPC
 
 % Reuse code from exercise 3 to calculate cost
@@ -86,6 +95,13 @@ for i=1:dim.N+1
     A_X = blkdiag(A_X, A_x);
     b_X = [b_X;b_x];
 end
+
+% Define terminal set
+terminal = Xn.lqr{1};
+% x_N = T_N * x_0 + S_N * U
+predmod=predmodgen(LTI,dim);  
+T_N = predmod.T(end-dim.nx+1:end,:);
+S_N = predmod.S(end-dim.nx+1:end,:);
 %% Simulate MPC from the initial starting point.
 
 T = 1500;    % Simulation steps
@@ -146,6 +162,7 @@ for k=1:T
                 uostar(5:4:end) == 0
                 A_X * (predmode.T*xe_0 + predmode.S*uostar) <= b_X
                 A_U * uostar <= b_U;          % Input constraints
+                terminal.A * (T_N * xe_0(1:dim.nx) + S_N * uostar) <=terminal.b;        % Terminal constraints
     ];                                           % define constraints
     Objective = 0.5*uostar'*He*uostar+(he*[xe_0; xre; ur])'*uostar;    %define cost function
     optimize(Constraint,Objective);                                    %solve the problem
@@ -169,18 +186,18 @@ end
 %%
 figure()
 hold on
-plot(0:T, xehat(end-dim.nd+1,:))
+plot(0:T, xehat(end-dim.nd+2,:))
 %%
 figure()
 hold on
-index = 1;
+index = 3;
 plot(0:T-1, y(index,:))
 plot(0:T-1, yhat(index,:))
 plot(0:T-1, yref(index, :))
 %%
 figure()
 hold on
-index = 8;
+index = 1;
 plot(0:T, xe(index,:))
 plot(0:T, xehat(index,:))
 plot(0:T-1, xr_plot(index,:))
