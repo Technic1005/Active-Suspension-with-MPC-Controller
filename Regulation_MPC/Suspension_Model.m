@@ -56,11 +56,10 @@ LTI.B=P_dis.B;
 LTI.C=P_dis.C;
 LTI.D=P_dis.D;
 
-xlb = [-inf(), -inf(), -inf(), -inf(), -0.15, -0.15, -inf(), -inf()]';
-xub = [inf(), inf(), inf(), inf(), 0.12, 0.12, (m_b*b/(a+b)+m_w1)*9.81/k_s1, (m_b*a/(a+b)+m_w2)*9.81/k_s2]';
-ulb = [-2500, -2500, -inf(), -inf(), -inf()]';
-uub = [2500, 2500, inf(), inf(), inf()]';
-
+xlb = [-inf(), -inf(), -inf(), -inf(), -0.10, -0.10, -inf(), -inf()]';
+xub = [inf(), inf(), inf(), inf(), 0.08, 0.08, (m_b*b/(a+b)+m_w1)*9.81/k_s1, (m_b*a/(a+b)+m_w2)*9.81/k_s2]';
+ulb = [-3500, -3500, -inf(), -inf(), -inf()]';
+uub = [3500, 3500, inf(), inf(), inf()]';
 % 
 % T = 5;
 % step = 0:ts:T;

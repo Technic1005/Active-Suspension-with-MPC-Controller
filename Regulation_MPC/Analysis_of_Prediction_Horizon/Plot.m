@@ -37,9 +37,10 @@ stairs(Timestamp, N8.x(index,:))
 stairs(Timestamp, N15.x(index,:))
 legend('No Control','N=2','N=5','N=8','N=15', 'Interpreter', 'latex')
 xlabel('Time[s]', 'Interpreter', 'latex')
-ylabel(ylabels{1}, 'Interpreter', 'latex')
-title(titles(1), 'Interpreter', 'latex')
+ylabel(ylabels{index}, 'Interpreter', 'latex')
+title(titles(index), 'Interpreter', 'latex')
 xlim([0,2])
+ylim([-0.2,0.2])
 
 %% Cmp All States
 figure(2)

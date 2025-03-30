@@ -110,11 +110,16 @@ for i = 1:length(dotx_b)
 end
 
 %% N=8
-[row, col] = size(mat);
-[X, Y] = meshgrid(dottheta, dotx_b); % 计算实际坐标
+N2 = load("Neq2.mat");
+N8 = load("Neq8.mat");
+
+[row, col] = size(N2.mat);
+[X, Y] = meshgrid(N2.dottheta, N2.dotx_b); % 计算实际坐标
 resX = 0.1;
 resY = 0.1;
 figure(1);
+subplot(1,2,1)
+pbaspect([1 1 1]); % 保持正方形
 hold on;
 
 for i = 1:row
@@ -122,15 +127,39 @@ for i = 1:row
         theta = X(i, j);
         xb = Y(i, j);
         color = [1 0 0];
-        if mat(i, j) == 1
+        if N2.mat(i, j) == 1
             color = [0 1 0];
         end
         rectangle('Position', [theta - resX/2, xb - resY/2, 0.085, resY], ...
                   'FaceColor', color, 'EdgeColor', 'None');
     end
 end
-xlim([min(dottheta)-resX/2, max(dottheta)+resX/2]);
-ylim([min(dotx_b)-resY/2, max(dotx_b)+resY/2]);
+xlim([min(N2.dottheta)-resX/2, max(N2.dottheta)+resX/2]);
+ylim([min(N2.dotx_b)-resY/2, max(N2.dotx_b)+resY/2]);
 xlabel('$\dot{\theta}$[rad/s]', 'Interpreter', 'latex');
 ylabel('$\dot{x_b}$[m/s]', 'Interpreter', 'latex');
-title('Estimation of $X_N$', 'Interpreter', 'latex');
+title('Estimation of $\mathcal{X}_N$ (N=2)', 'Interpreter', 'latex');
+
+subplot(1,2,2)
+pbaspect([1 1 1]); % 保持正方形
+[row, col] = size(N8.mat);
+[X, Y] = meshgrid(N8.dottheta, N8.dotx_b); % 计算实际坐标
+resX = 0.1;
+resY = 0.1;
+for i = 1:row
+    for j = 1:col
+        theta = X(i, j);
+        xb = Y(i, j);
+        color = [1 0 0];
+        if N8.mat(i, j) == 1
+            color = [0 1 0];
+        end
+        rectangle('Position', [theta - resX/2, xb - resY/2, 0.085, resY], ...
+                  'FaceColor', color, 'EdgeColor', 'None');
+    end
+end
+xlim([min(N8.dottheta)-resX/2, max(N8.dottheta)+resX/2]);
+ylim([min(N8.dotx_b)-resY/2, max(N8.dotx_b)+resY/2]);
+xlabel('$\dot{\theta}$[rad/s]', 'Interpreter', 'latex');
+ylabel('$\dot{x_b}$[m/s]', 'Interpreter', 'latex');
+title('Estimation of $\mathcal{X}_N$ (N=8)', 'Interpreter', 'latex');

@@ -15,7 +15,7 @@ dim.N = 8;                  % prediction horizon
 %weight.Q = diag([1e4, 1e4, 1e3, 1e3, 1e6, 1e6,1e3,1e3]);
 %weight.R = diag([1e-4, 1e-4, 1e-3, 1e-3, 1e-3]);
 weight.Q = 1e4*diag([1e0, 1e0, 1e0, 1e0, 1e1, 1e1, 1e0,1e0]);
-weight.R = diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4]);
+weight.R = 0.01*diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4]);
 % Find LQR.
 [K, P] = dlqr(LTI.A, LTI.B, weight.Q, weight.R);
 weight.P = P;
@@ -64,7 +64,7 @@ T_N = predmod.T(end-dim.nx+1:end,:);
 S_N = predmod.S(end-dim.nx+1:end,:);
 %% Simulate MPC from the initial starting point.
 
-T = 1500;    % Simulation steps
+T = 500;    % Simulation steps
 
 % Matrices to store results
 x=zeros(dim.nx,T+1);
@@ -79,7 +79,7 @@ L = 10;
 A = 0.05;
 Wheelbase = 1.25+1.51;
 V = 30/3.6;
-t0 = 5;
+t0 = 2;
 [ExternalInput.zf,ExternalInput.zr,ExternalInput.dotzf,ExternalInput.dotzr] = GenerateBump(L, A, Wheelbase, V, t0, 0.01, T);
 
 % Pitch Moment
@@ -123,7 +123,7 @@ end
 
 %%
 step = 0:1:T;
-index = 6;
+index = 5;
 figure()
 hold on
 stairs(step, x(index,:)) % 用阶梯图画出状态保持器的效果
