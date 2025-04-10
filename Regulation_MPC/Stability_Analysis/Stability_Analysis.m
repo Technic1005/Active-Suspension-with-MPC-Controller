@@ -49,7 +49,13 @@ end
 
 % Calculate state constraints
 % A_X * X <= b_X
-[A_X, b_X] = hyperrectangle(xlb, xub);
+[A_x, b_x] = hyperrectangle(xlb, xub);
+A_X = [];
+b_X = [];
+for i=1:dim.N+1
+    A_X = blkdiag(A_X, A_x);
+    b_X = [b_X;b_x];
+end
 
 % Define terminal set
 terminal = Xn.lqr{1};
@@ -58,8 +64,8 @@ T_N = predmod.T(end-dim.nx+1:end,:);
 S_N = predmod.S(end-dim.nx+1:end,:);
 %% Simulate MPC from the initial starting point.
 
-lb = -1;
-ub = 1;
+lb = -0.5;
+ub = 0.5;
 res = 0.1;
 
 dotx_b = lb:res:ub;
@@ -82,14 +88,14 @@ for i = 1:length(dotx_b)
             x_0=x(:,k);
             
             % Solve the unconstrained optimization problem (with YALMIP)
-            options = sdpsettings('solver', 'quadprog', 'verbose', 0);
+            options = sdpsettings('solver', 'quadprog', 'verbose', 1);
             u_con = sdpvar(dim.nu*dim.N,1);          % define optimization variable
             Constraint=[u_con(3:5:end) == 0;         % Front road input
                         u_con(4:5:end) == 0          % Rear road input
                         u_con(5:5:end) == 0          % Pitch Moment
-                        A_X * x_0 <= b_X;            % State constraints
+                        A_X * (predmod.T*x_0 + predmod.S*u_con) <= b_X;             % State constraints
                         A_U * u_con <= b_U;          % Input constraints
-                        % terminal.A * (T_N * x_0 + S_N * u_con) <=terminal.b;        % Terminal constraints
+                        terminal.A * (T_N * x_0 + S_N * u_con) <=terminal.b;        % Terminal constraints
                 ];                                           % define constraints
             Objective = 0.5*u_con'*H*u_con+(h*x_0)'*u_con;     % define cost function
             optimize(Constraint,Objective,options);                          % solve the problem
@@ -100,26 +106,26 @@ for i = 1:length(dotx_b)
         
             % Compute the state/output evolution
             x(:,k+1)=LTI.A*x_0 + LTI.B*u_rec(:,k);
-            clear u_con
+            %clear u_con
             
         end
-        inSet = all(terminal.A * x(:,end) < terminal.b);
+        inSet = all(terminal.A * x(:,end) <= terminal.b);
         mat(i, j) = inSet;
     end
     disp(i)
 end
 
-%% N=8
+%% Plot
 N2 = load("Neq2.mat");
 N8 = load("Neq8.mat");
 
 [row, col] = size(N2.mat);
-[X, Y] = meshgrid(N2.dottheta, N2.dotx_b); % 计算实际坐标
+[X, Y] = meshgrid(N2.dottheta, N2.dotx_b); % Grid
 resX = 0.1;
 resY = 0.1;
 figure(1);
 subplot(1,2,1)
-pbaspect([1 1 1]); % 保持正方形
+pbaspect([1 1 1]);
 hold on;
 
 for i = 1:row
@@ -141,9 +147,9 @@ ylabel('$\dot{x_b}$[m/s]', 'Interpreter', 'latex');
 title('Estimation of $\mathcal{X}_N$ (N=2)', 'Interpreter', 'latex');
 
 subplot(1,2,2)
-pbaspect([1 1 1]); % 保持正方形
+pbaspect([1 1 1]);
 [row, col] = size(N8.mat);
-[X, Y] = meshgrid(N8.dottheta, N8.dotx_b); % 计算实际坐标
+[X, Y] = meshgrid(N8.dottheta, N8.dotx_b);
 resX = 0.1;
 resY = 0.1;
 for i = 1:row

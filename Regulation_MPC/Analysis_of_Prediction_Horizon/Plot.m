@@ -27,37 +27,31 @@ ylabels = {
     };
 %% Cmp Prediction Horizon Figure
 figure(1)
-hold on
 index = 1;
-Timestamp = N2.step * 0.01;
-stairs(Timestamp, N2.x_original(index,:))
-stairs(Timestamp, N2.x(index,:))
-stairs(Timestamp, N5.x(index,:))
-stairs(Timestamp, N8.x(index,:))
-stairs(Timestamp, N15.x(index,:))
-legend('No Control','N=2','N=5','N=8','N=15', 'Interpreter', 'latex')
-xlabel('Time[s]', 'Interpreter', 'latex')
-ylabel(ylabels{index}, 'Interpreter', 'latex')
-title(titles(index), 'Interpreter', 'latex')
-xlim([0,2])
-ylim([-0.2,0.2])
+set(gcf, 'Position', [100, 100, 800, 500]) % Window Size
+hold on
 
-%% Cmp All States
-figure(2)
-Timestamp = N2.step * 0.01;
-index_map = [1,2,3,4,5,6,7,8];
+% Colormap
+colors = lines(5);
+line_styles = {'-', '-', '-', '-', '-'};
 
-for i = 1:length(index_map)
-    subplot(4,2,i)
-    hold on
-    index = index_map(i);
-    stairs(Timestamp, N2.x_original(index,:))
-    stairs(Timestamp, N2.x(index,:))
-    stairs(Timestamp, N5.x(index,:))
-    stairs(Timestamp, N8.x(index,:))
-    stairs(Timestamp, N15.x(index,:))
-    legend('No Control','N=2','N=5','N=8','N=15', 'Interpreter', 'latex')
-    xlabel('Time[s]', 'Interpreter', 'latex')
-    ylabel(ylabels{index}, 'Interpreter', 'latex')
-    title(titles(index), 'Interpreter', 'latex')
-end
+% Main figure
+Timestamp = N2.step * 0.01;
+%stairs(Timestamp, N2.x_original(index,:), 'LineStyle', line_styles{1}, 'Color', colors(1,:), 'LineWidth', 1.5)
+stairs(Timestamp, N2.x(index,:), 'LineStyle', line_styles{2}, 'Color', colors(2,:), 'LineWidth', 1.5)
+stairs(Timestamp, N5.x(index,:), 'LineStyle', line_styles{3}, 'Color', colors(3,:), 'LineWidth', 1.5)
+stairs(Timestamp, N8.x(index,:), 'LineStyle', line_styles{4}, 'Color', colors(4,:), 'LineWidth', 1.5)
+stairs(Timestamp, N15.x(index,:), 'LineStyle', line_styles{5}, 'Color', colors(5,:), 'LineWidth', 2)
+
+% Legend
+legend({'N=2', 'N=5', 'N=8', 'N=15'}, ...
+       'Interpreter', 'latex', 'FontSize', 10, 'Location', 'northwest')
+xlabel('Time [s]', 'Interpreter', 'latex', 'FontSize', 12)
+ylabel(ylabels{index}, 'Interpreter', 'latex', 'FontSize', 12)
+
+% Title
+title(titles(index), 'Interpreter', 'latex', 'FontSize', 14)
+
+xlim([0, 1.2])
+ylim([-0.08, 0.1])
+grid on

@@ -120,18 +120,3 @@ for k=1:T
     clear u_con
     
 end
-
-%%
-step = 0:1:T;
-index = 5;
-figure()
-hold on
-stairs(step, x(index,:)) % 用阶梯图画出状态保持器的效果
-stairs(step, x_original(index,:))
-xlabel('Step')
-ylabel('State x1')
-%%
-figure()
-stairs(step(1:end-1), u_rec(1,:)) % 用阶梯图画出状态保持器的效果
-xlabel('Step')
-ylabel('Input u1')

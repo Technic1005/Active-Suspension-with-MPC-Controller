@@ -121,17 +121,17 @@ for k=1:T
     
 end
 
-%%
+%% Plot
 step = 0:1:T;
 index = 6;
 figure()
 hold on
-stairs(step, x(index,:)) % 用阶梯图画出状态保持器的效果
+stairs(step, x(index,:))
 stairs(step, x_original(index,:))
 xlabel('Step')
 ylabel('State x1')
-%%
+
 figure()
-stairs(step(1:end-1), u_rec(1,:)) % 用阶梯图画出状态保持器的效果
+stairs(step(1:end-1), u_rec(1,:))
 xlabel('Step')
 ylabel('Input u1')

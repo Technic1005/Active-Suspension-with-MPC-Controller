@@ -10,11 +10,11 @@ LTI.d = [0;0];
 LTI.Cd= [
     0, 0;
     0, 0;
-    0, 1
+    0, 5
 ];
 
 LTI.Bd=[
-    0.4, 0;
+    5, 0;
     0, 0;
     0, 0;
     0, 0;
@@ -34,8 +34,8 @@ dim.N = 8;                  % prediction horizon
 % Weight Matrix
 weight.Q = diag([1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0,1e0]);
 weight.R = diag([1e-2, 1e-2, 0, 0, 0]);
-% weight.Q = 1e4*diag([1e0, 1e0, 1e0, 1e0, 1e1, 1e1, 1e0,1e0]);
-% weight.R = diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4]);
+%weight.Q = 1e4*diag([1e0, 1e0, 1e0, 1e0, 1e1, 1e1, 1e0,1e0]);
+%weight.R = diag([1e-4, 1e-4, 1e-4, 1e-4, 1e-4]);
 
 % Find LQR.
 [K, P] = dlqr(LTI.A, LTI.B, weight.Q, weight.R);
@@ -107,8 +107,10 @@ S_N = predmod.S(end-dim.nx+1:end,:);
 T = 1500;    % Simulation steps
 div = 15;
 
-d1 = [zeros(1,T/div) (470/690*0.025)*ones(1,1*T/div) zeros(1,6*T/div) (470/690*0.025)*ones(1,7*T/div)];
-d2 = [zeros(1, 11*T/div) (0.01)*ones(1,4*T/div)];
+% Create disturbances
+d1 = [zeros(1,T/div) (470/690)*0.01*0.2*ones(1,1*T/div) zeros(1,6*T/div) (470/690*0.01)*0.2*ones(1,7*T/div)];
+d2 = [zeros(1, 11*T/div) (0.01)*0.2*ones(1,4*T/div)];
+% Create References
 yref = [zeros(3, 5*T/div), [zeros(1,10*T/div); 0.05*ones(1,10*T/div); 0.05*ones(1,10*T/div)]];
 
 % T = 1000;    % Simulation steps
@@ -131,13 +133,14 @@ ur_plot = zeros(dim.nu,T);
 xe(:,1)=LTIe.x0;
 xehat(:,1)=zeros(dime.nx,1);
 
+% Observer gain
 Q_kf = 1*eye(dime.nx);
 R_kf = 1*eye(dime.ny);
 
 [~,Obs_eigvals,Obs_gain] = dare(LTIe.A',LTIe.C',Q_kf,R_kf);
 Obs_gain = Obs_gain';
 
-%%
+%% Output MPC implementation
 % Receding horizon implementation
 for k=1:T
     
@@ -175,7 +178,8 @@ for k=1:T
     xe(:,k+1)=LTIe.A*x_0 + LTIe.B*u_rec(:,k);
     y(:,k)=LTIe.C*xe(:,k) + LTIe.D*u_rec(:,k);
     clear u_uncon
-
+    
+    % Estimated y values
     yhat(:,k) = LTIe.C*xe_0 + LTIe.D*u_rec(:,k);
         
     % Update extended-state estimation
@@ -183,25 +187,26 @@ for k=1:T
     
 end
 
-%%
+%% Disturbances Estimation
 figure()
 hold on
-plot(0:T, xehat(end-dim.nd+2,:))
-%%
+plot(0:T-1,d1)
+plot(0:T, xehat(end-dim.nd+1,:))
+%% Output States
 figure()
 hold on
 index = 3;
 plot(0:T-1, y(index,:))
 plot(0:T-1, yhat(index,:))
 plot(0:T-1, yref(index, :))
-%%
+%% States
 figure()
 hold on
 index = 1;
 plot(0:T, xe(index,:))
 plot(0:T, xehat(index,:))
 plot(0:T-1, xr_plot(index,:))
-%%
+%% Control inputs
 figure()
 hold on
 index = 2;
